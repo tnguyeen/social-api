@@ -12,6 +12,15 @@ const userSchema: Schema = new Schema(
       type: String,
       required: true,
     },
+    email:{
+      type: String,
+      required: true,
+      unique: true,
+    },
+    verified: {
+      type: Boolean,
+      default: false,
+    },
     followers: {
       type: Array<ObjectId>,
       required: true,
