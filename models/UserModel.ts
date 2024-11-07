@@ -21,21 +21,12 @@ const userSchema: Schema = new Schema(
       type: Boolean,
       default: false,
     },
-    followers: {
-      type: Array<ObjectId>,
-      required: true,
-    },
-    following: {
+    friends: {
       type: Array<ObjectId>,
       required: true,
     },
     profilePic: {
       type: String,
-    },
-    posts:{
-      type: Array<ObjectId>,
-      required: true,
-      default: []
     }
   },
   { timestamps: true }

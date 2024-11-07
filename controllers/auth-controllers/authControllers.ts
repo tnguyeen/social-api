@@ -4,13 +4,16 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import multer from "multer";
 import User from "../../models/UserModel";
-import sendMailVerify from "./authMailer";
+import { sendMailVerify, sendMailOtpForgotPassword } from "./authMailer";
 import {
   emailSchema,
+  generateNewPassword,
+  generateOTP,
   passwordSchema,
   usernameSchema,
   zodCheck,
-} from "./schemaChecks";
+} from "./helpers";
+import OtpModel from "../../models/OtpModel";
 
 const salt = bcrypt.genSaltSync(4);
 
@@ -148,7 +151,7 @@ export const register = async (
   } catch (error) {
     res.status(500).json({
       success: false,
-      mess: `${error}`,
+      message: `${error}`,
     });
   }
   next();
@@ -182,14 +185,29 @@ export const login = async (
     if (!user) {
       res.status(400).json({
         success: false,
-        mess: `Không có user này!`,
+        message: `Không có user này!`,
       });
       return;
     }
     const checkPassword = bcrypt.compareSync(password, String(user.password));
 
-    if (checkPassword) {
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!);
+    if (!checkPassword) {
+      res.status(400).json({
+        success: false,
+        message: "Nhập sai mật khẩu!",
+      });
+      return
+    }
+
+    if(!user.verified){
+      res.status(400).json({
+        success: false,
+        message: "Người dùng chưa được xác thực!",
+      });
+      return
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!);
       res.status(200).json({
         success: true,
         message: "Đăng nhập thành công!",
@@ -197,16 +215,10 @@ export const login = async (
           token,
         },
       });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: "Nhập sai mật khẩu!",
-      });
-    }
   } catch (error) {
     res.status(500).json({
       success: false,
-      mess: `${error}`,
+      message: `${error}`,
     });
   }
   next();
@@ -224,7 +236,7 @@ export const verifyAccount = async (
     if (!user) {
       res.status(400).json({
         success: false,
-        mess: `Không có user này!`,
+        message: `Không có user này!`,
       });
       return;
     }
@@ -236,7 +248,7 @@ export const verifyAccount = async (
   } catch (error) {
     res.status(500).json({
       success: false,
-      mess: `${error}`,
+      message: `${error}`,
     });
   }
   next();
@@ -293,7 +305,7 @@ export const changePassword = async (
     if (!user) {
       res.status(400).json({
         success: false,
-        mess: `Không có user này!`,
+        message: `Không có user này!`,
       });
       return;
     }
@@ -316,14 +328,125 @@ export const changePassword = async (
 
     await user.save();
 
-    res.status(400).json({
+    res.status(200).json({
       success: true,
       message: "Thay đổi mật khẩu thành công!",
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      mess: `${error}`,
+      message: `${error}`,
+    });
+  }
+  next();
+};
+
+export const otpForgotPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({
+        success: false,
+        message: "Vui lòng nhập địa chỉ email!",
+      });
+      return;
+    }
+
+    const isEmail = await User.findOne({ email: email });
+    if (!isEmail) {
+      res.status(400).json({
+        success: false,
+        message: "Địa chỉ email không tồn tại!",
+      });
+      return;
+    }
+
+    const otpCode = generateOTP();
+
+    const opt = new OtpModel({
+      email: email,
+      code: otpCode,
+    });
+
+    const savedOtp = await opt.save();
+
+    await sendMailOtpForgotPassword(email, String(savedOtp.code));
+
+    res.status(200).json({
+      success: true,
+      message: "Đã gửi!",
+      email,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: `${error}`,
+    });
+  }
+  next();
+};
+
+export const changeForgottenPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email, otpCode } = req.body;
+    if (!email) {
+      res.status(400).json({
+        success: false,
+        message: "Vui lòng nhập địa chỉ email!",
+      });
+      return;
+    }
+    if (!otpCode) {
+      res.status(400).json({
+        success: false,
+        message: "Vui lòng nhập mã otp!",
+      });
+      return;
+    }
+
+    const user = await User.findOne({ email: email });
+    if (!user) {
+      res.status(400).json({
+        success: false,
+        message: "Địa chỉ email không tồn tại!",
+      });
+      return;
+    }
+
+    const otp = await OtpModel.find({ email: email }).sort({ createdAt: -1 });
+
+    if (otp[0].code !== otpCode) {
+      res.status(200).json({
+        success: false,
+        message: "Mã OTP sai!",
+      });
+      return
+    }
+    
+    const newPassword = generateNewPassword()
+
+    const hashedPassword = bcrypt.hashSync(newPassword, salt);
+    user.password = hashedPassword;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Xác thực mã đúng!",
+      newPassword
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: `${error}`,
     });
   }
   next();

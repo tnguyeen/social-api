@@ -3,7 +3,7 @@ import dotenv from "dotenv"
 import bp from "body-parser"
 import cors from "cors"
 import authRoutes from "./routes/authRoute"
-// import userRoutes from "./routes/userRoute"
+import userRoutes from "./routes/userRoute"
 // import postRoutes from "./routes/postRoute"
 // import messRoutes from "./routes/messRoute"
 
@@ -23,7 +23,7 @@ app.get("/", (req: Request, res: Response) => {
 
 /* CAC THE LOAI ROUTE */
 app.use("/auth", authRoutes)
-// app.use("/user", userRoutes)
+app.use("/user", userRoutes)
 // app.use("/post", postRoutes)
 // app.use("/chat", messRoutes)
 

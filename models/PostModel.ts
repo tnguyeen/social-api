@@ -1,5 +1,5 @@
-import { ObjectId } from "mongodb"
-import mongoose, { Schema } from "mongoose"
+import { ObjectId } from "mongodb";
+import mongoose, { Schema } from "mongoose";
 
 const postSchema: Schema = new Schema(
   {
@@ -27,13 +27,9 @@ const postSchema: Schema = new Schema(
       type: Array<ObjectId>,
       default: [],
     },
-    comments: {
-      type: Array<ObjectId>,
-      default: [],
-    },
   },
   { timestamps: true }
-)
-const Post = mongoose.model("Post", postSchema)
+);
+const Post = mongoose.model("Post", postSchema);
 
-export default Post
+export default Post;

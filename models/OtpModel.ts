@@ -1,19 +1,24 @@
-import { ObjectId } from "mongodb";
 import mongoose, { Schema } from "mongoose";
 
 const otpSchema: Schema = new Schema(
   {
-    userId: {
-      type: ObjectId,
+    email: {
+      type: String,
       required: true,
     },
     code: {
       type: String,
       required: true,
     },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  { timestamps: true, expireAfterSeconds: 120 }
+  { timestamps: true }
 );
-const OtpModel = mongoose.model("OtpModel", otpSchema);
+
+otpSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 5 });
+const OtpModel = mongoose.model("Otp", otpSchema);
 
 export default OtpModel;

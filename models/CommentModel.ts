@@ -1,8 +1,12 @@
-import { ObjectId } from "mongodb"
-import mongoose, { Schema } from "mongoose"
+import { ObjectId } from "mongodb";
+import mongoose, { Schema } from "mongoose";
 
-const postSchema: Schema = new Schema(
+const commentSchema: Schema = new Schema(
   {
+    postId: {
+      type: ObjectId,
+      required: true,
+    },
     userId: {
       type: ObjectId,
       required: true,
@@ -11,13 +15,13 @@ const postSchema: Schema = new Schema(
       type: String,
       required: true,
     },
-    comments: {
+    content: {
       type: String,
       required: true,
     },
   },
   { timestamps: true }
-)
-const Post = mongoose.model("Post", postSchema)
+);
+const Comment = mongoose.model("Comment", commentSchema);
 
-export default Post
+export default Comment;

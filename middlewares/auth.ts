@@ -15,7 +15,7 @@ export const verifyUser = async (
     if (!token) {
       res.status(403).json({
         success: false,
-        mess: `Không có quyền truy cập!`,
+        message: `Không có quyền truy cập!`,
       });
       return;
     }
@@ -31,7 +31,7 @@ export const verifyUser = async (
   } catch (err) {
     res.status(403).json({
       success: false,
-      mess: `Không có quyền truy cập!`,
+      message: `Không có quyền truy cập!`,
     });
   }
 };
