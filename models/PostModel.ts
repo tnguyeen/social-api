@@ -1,10 +1,9 @@
-import { ObjectId } from "mongodb";
 import mongoose, { Schema } from "mongoose";
 
 const postSchema: Schema = new Schema(
   {
     userId: {
-      type: ObjectId,
+      type: String,
       required: true,
     },
     username: {
@@ -24,7 +23,7 @@ const postSchema: Schema = new Schema(
       default: "",
     },
     likes: {
-      type: Array<ObjectId>,
+      type: Array<String>,
       default: [],
     },
   },

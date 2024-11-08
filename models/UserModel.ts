@@ -1,5 +1,4 @@
-import { ObjectId } from "mongodb"
-import mongoose, { Schema } from "mongoose"
+import mongoose, { Schema } from "mongoose";
 
 const userSchema: Schema = new Schema(
   {
@@ -12,7 +11,7 @@ const userSchema: Schema = new Schema(
       type: String,
       required: true,
     },
-    email:{
+    email: {
       type: String,
       required: true,
       unique: true,
@@ -22,15 +21,15 @@ const userSchema: Schema = new Schema(
       default: false,
     },
     friends: {
-      type: Array<ObjectId>,
+      type: Array<String>,
       required: true,
     },
     profilePic: {
       type: String,
-    }
+    },
   },
   { timestamps: true }
-)
-const User = mongoose.model("User", userSchema)
+);
+const User = mongoose.model("User", userSchema);
 
-export default User
+export default User;

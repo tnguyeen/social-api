@@ -1,14 +1,13 @@
 import mongoose, { Schema } from "mongoose";
-import { ObjectId } from "mongodb";
 
 const friendRequestSchema: Schema = new Schema(
   {
     fromUserId: {
-      type: ObjectId,
+      type: String,
       required: true,
     },
     toUserId: {
-      type: ObjectId,
+      type: String,
       required: true,
     },
   },

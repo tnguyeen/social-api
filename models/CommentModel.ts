@@ -1,14 +1,13 @@
-import { ObjectId } from "mongodb";
 import mongoose, { Schema } from "mongoose";
 
 const commentSchema: Schema = new Schema(
   {
     postId: {
-      type: ObjectId,
+      type: String,
       required: true,
     },
     userId: {
-      type: ObjectId,
+      type: String,
       required: true,
     },
     username: {
