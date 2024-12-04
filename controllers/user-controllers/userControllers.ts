@@ -29,16 +29,23 @@ export const getUser = async (
       return;
     }
 
+    const { username, email, profilePic, friends } = targetUser;
+
     if (String(targetUser._id) === userId.id) {
+      const posts = await Post.find({ userId: targetUser._id });
       res.status(200).json({
         success: true,
         message: "Lấy thông tin người dùng thành công!",
-        data: targetUser,
+        data: {
+          username,
+          email,
+          friends,
+          profilePic,
+          posts,
+        },
       });
       return;
     }
-
-    const { username, email, profilePic, friends } = targetUser;
 
     const isFriend = (friends as Array<String>).includes(userId.id);
 

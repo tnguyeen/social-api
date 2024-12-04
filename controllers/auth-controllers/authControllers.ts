@@ -199,7 +199,7 @@ export const login = async (
       return
     }
 
-    if(!user.verified){
+    if (!user.verified) {
       res.status(400).json({
         success: false,
         message: "Người dùng chưa được xác thực!",
@@ -208,13 +208,13 @@ export const login = async (
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!);
-      res.status(200).json({
-        success: true,
-        message: "Đăng nhập thành công!",
-        data: {
-          token,
-        },
-      });
+    res.status(200).json({
+      success: true,
+      message: "Đăng nhập thành công!",
+      data: {
+        token,
+      },
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -430,7 +430,7 @@ export const changeForgottenPassword = async (
       });
       return
     }
-    
+
     const newPassword = generateNewPassword()
 
     const hashedPassword = bcrypt.hashSync(newPassword, salt);
