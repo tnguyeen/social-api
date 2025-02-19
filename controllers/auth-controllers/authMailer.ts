@@ -1,8 +1,13 @@
-import Mail from "nodemailer/lib/mailer";
-import transporter from "../../config/email";
+import Mail from "nodemailer/lib/mailer"
+import transporter from "../../config/email"
+import dotenv from "dotenv"
+dotenv.config({ path: "../../.env" })
+
+const DB: string = process.env.DATABASE!
 
 const verifyHtml = (targetId: string) => {
-  const url = `http://localhost:8000/auth/verify/${targetId}`;
+  const APP_URP = process.env.APP_URL!
+  const url = `${APP_URP}/verify/${targetId}`
   return `<div
       style="
         width: 100%;
@@ -40,8 +45,8 @@ const verifyHtml = (targetId: string) => {
       <span style="font-size: xx-large; font-weight: bolder; margin: 20px 10px"
         >Trân trọng!</span
       >
-    </div>`;
-};
+    </div>`
+}
 
 const forgotPasswordHtml = (otp: string) => {
   return `<div
@@ -87,8 +92,8 @@ const forgotPasswordHtml = (otp: string) => {
       <span style="font-size: xx-large; font-weight: bolder; margin: 20px 10px"
         >Trân trọng!</span
       >
-    </div>`;
-};
+    </div>`
+}
 
 const sendMailVerify = async (sendTo: string, targetId: string) => {
   var verifyMailOptions: Mail.Options = {
@@ -96,9 +101,9 @@ const sendMailVerify = async (sendTo: string, targetId: string) => {
     to: sendTo,
     subject: "Xác nhận tạo tài khoản.",
     html: verifyHtml(targetId),
-  };
-  await transporter.sendMail(verifyMailOptions);
-};
+  }
+  await transporter.sendMail(verifyMailOptions)
+}
 
 const sendMailOtpForgotPassword = async (sendTo: string, otp: string) => {
   var verifyMailOptions: Mail.Options = {
@@ -106,8 +111,8 @@ const sendMailOtpForgotPassword = async (sendTo: string, otp: string) => {
     to: sendTo,
     subject: "Mã xác nhận thay đổi mật khẩu.",
     html: forgotPasswordHtml(otp),
-  };
-  await transporter.sendMail(verifyMailOptions);
-};
+  }
+  await transporter.sendMail(verifyMailOptions)
+}
 
-export { sendMailVerify, sendMailOtpForgotPassword };
+export { sendMailVerify, sendMailOtpForgotPassword }

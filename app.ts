@@ -18,7 +18,9 @@ app.use(bp.urlencoded({ extended: true }))
 app.use(cors())
 
 app.get("/", (req: Request, res: Response) => {
-  res.send(`Hello`)
+  res.json({
+    message: "Server is live! Dev only.",
+  })
 })
 
 /* CAC THE LOAI ROUTE */

@@ -1,7 +1,7 @@
-import { NextFunction, Request, Response } from "express";
-import FriendRequest from "../../models/FriendRequestModel";
-import User from "../../models/UserModel";
-import Post from "../../models/PostModel";
+import { NextFunction, Request, Response } from "express"
+import FriendRequest from "../../models/FriendRequestModel"
+import User from "../../models/UserModel"
+import Post from "../../models/PostModel"
 
 export const getUser = async (
   req: Request,
@@ -9,30 +9,30 @@ export const getUser = async (
   next: NextFunction
 ) => {
   try {
-    const { userId } = req.body;
-    const { targetUsername } = req.params;
+    const { userId } = req.body
+    const { targetUsername } = req.params
 
     if (!targetUsername) {
       res.status(400).json({
         success: false,
         message: "Vui lòng cung cấp tên người dùng cần tìm!",
-      });
-      return;
+      })
+      return
     }
 
-    const targetUser = await User.findOne({ username: targetUsername });
+    const targetUser = await User.findOne({ username: targetUsername })
     if (!targetUser) {
       res.status(400).json({
         success: false,
         message: `Không có user này!`,
-      });
-      return;
+      })
+      return
     }
 
-    const { username, email, profilePic, friends } = targetUser;
+    const { username, email, profilePic, friends } = targetUser
 
     if (String(targetUser._id) === userId.id) {
-      const posts = await Post.find({ userId: targetUser._id });
+      const posts = await Post.find({ userId: targetUser._id })
       res.status(200).json({
         success: true,
         message: "Lấy thông tin người dùng thành công!",
@@ -43,11 +43,11 @@ export const getUser = async (
           profilePic,
           posts,
         },
-      });
-      return;
+      })
+      return
     }
 
-    const isFriend = (friends as Array<String>).includes(userId.id);
+    const isFriend = (friends as Array<String>).includes(userId.id)
 
     if (!isFriend) {
       res.status(200).json({
@@ -59,10 +59,10 @@ export const getUser = async (
           friends,
           profilePic,
         },
-      });
-      return;
+      })
+      return
     } else {
-      const posts = await Post.find({ userId: targetUser._id });
+      const posts = await Post.find({ userId: targetUser._id })
       res.status(200).json({
         success: true,
         message: `Lấy thông tin người dùng thành công!`,
@@ -73,16 +73,16 @@ export const getUser = async (
           profilePic,
           posts,
         },
-      });
+      })
     }
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    });
+    })
   }
-  next();
-};
+  next()
+}
 
 export const sendFriendRequestUsername = async (
   req: Request,
@@ -90,73 +90,73 @@ export const sendFriendRequestUsername = async (
   next: NextFunction
 ) => {
   try {
-    const { userId } = req.body;
-    const { targetUsername } = req.params;
+    const { userId } = req.body
+    const { targetUsername } = req.params
 
     if (!targetUsername) {
       res.status(400).json({
         success: false,
         message: "Vui lòng cung cấp tên người dùng cần tìm!",
-      });
-      return;
+      })
+      return
     }
 
-    const targetUser = await User.findOne({ username: targetUsername });
+    const targetUser = await User.findOne({ username: targetUsername })
     if (!targetUser) {
       res.status(400).json({
         success: false,
         message: `Không có user này!`,
-      });
-      return;
+      })
+      return
     }
 
     if (String(targetUser._id) === userId.id) {
       res.status(400).json({
         success: false,
         message: "Bạn không thể kết bạn với chính mình!",
-      });
-      return;
+      })
+      return
     }
 
     if ((targetUser.friends as Array<String>).includes(userId.id)) {
       res.status(400).json({
         success: false,
         message: `Đã bạn!`,
-      });
-      return;
+      })
+      return
     }
 
     const isFriendRequest = await FriendRequest.find({
       fromUserId: userId.id,
       toUserId: String(targetUser._id),
-    });
+    })
     if (isFriendRequest.length > 0) {
       res.status(400).json({
         success: false,
         message: `Đã gửi yêu cầu kết bạn!`,
-      });
-      return;
+      })
+      return
     }
 
     const friendRequest = new FriendRequest({
       fromUserId: userId.id,
       toUserId: String(targetUser._id),
-    });
+    })
 
-    await friendRequest.save();
+    await friendRequest.save()
 
     res.status(201).json({
       success: true,
       message: `Gửi yêu cầu kết bạn thành công!`,
-    });
+    })
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    });
+    })
   }
-  next();
-};
+  next()
+}
 
 export const getMyFriendRequest = async (
   req: Request,
@@ -164,38 +164,38 @@ export const getMyFriendRequest = async (
   next: NextFunction
 ) => {
   try {
-    const { userId } = req.body;
+    const { userId } = req.body
 
     const friendRequests = await FriendRequest.find({
       toUserId: userId.id,
-    });
+    })
 
-    const result: any = [];
+    const result: any = []
 
     await Promise.all(
       friendRequests.map(async (friendRequest) => {
-        const targetUser = await User.findById(friendRequest.fromUserId);
+        const targetUser = await User.findById(friendRequest.fromUserId)
         result.push({
           id: friendRequest._id,
           fromUsername: targetUser?.username,
           fromProfilePic: targetUser?.profilePic,
-        });
+        })
       })
-    );
+    )
 
     res.status(200).json({
       success: true,
       message: `Lấy thông tin thành công!`,
       data: { result },
-    });
+    })
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    });
+    })
   }
-  next();
-};
+  next()
+}
 
 export const handleFriendRequest = async (
   req: Request,
@@ -203,33 +203,33 @@ export const handleFriendRequest = async (
   next: NextFunction
 ) => {
   try {
-    const { userId, friendRequestId, accept } = req.body;
+    const { userId, friendRequestId, accept } = req.body
 
     if (!accept) {
       res.status(400).json({
         success: false,
         message: `Không có accept field này!`,
-      });
-      return;
+      })
+      return
     }
 
-    const isAccepted = JSON.parse(accept);
+    const isAccepted = JSON.parse(accept)
 
-    const friendRequest = await FriendRequest.findById(friendRequestId);
+    const friendRequest = await FriendRequest.findById(friendRequestId)
     if (!friendRequest) {
       res.status(400).json({
         success: false,
         message: `Không có friendRequest này!`,
-      });
-      return;
+      })
+      return
     }
 
     if (String(friendRequest.toUserId) !== userId.id) {
       res.status(400).json({
         success: false,
         message: `Không có friendRequest này!`,
-      });
-      return;
+      })
+      return
     }
 
     if (isAccepted) {
@@ -237,28 +237,28 @@ export const handleFriendRequest = async (
         friendRequest.fromUserId,
         { $push: { friends: userId.id } },
         { new: true }
-      );
+      )
       await User.findByIdAndUpdate(
         friendRequest.toUserId,
         { $push: { friends: friendRequest.fromUserId } },
         { new: true }
-      );
+      )
     }
 
-    await friendRequest.deleteOne();
+    await friendRequest.deleteOne()
 
     res.status(200).json({
       success: true,
       message: `Đã ${isAccepted ? "đồng ý" : "từ chối"} kết bạn!`,
-    });
+    })
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    });
+    })
   }
-  next();
-};
+  next()
+}
 
 export const unfriendUsername = async (
   req: Request,
@@ -266,55 +266,89 @@ export const unfriendUsername = async (
   next: NextFunction
 ) => {
   try {
-    const { userId } = req.body;
-    const { targetUsername } = req.params;
+    const { userId } = req.body
+    const { targetUsername } = req.params
 
     if (!targetUsername) {
       res.status(400).json({
         success: false,
         message: "Vui lòng cung cấp tên người dùng cần tìm!",
-      });
-      return;
+      })
+      return
     }
 
-    const targetUser = await User.findOne({ username: targetUsername });
+    const targetUser = await User.findOne({ username: targetUsername })
     if (!targetUser) {
       res.status(400).json({
         success: false,
         message: `Không có user này!`,
-      });
-      return;
+      })
+      return
     }
 
     if (!(targetUser.friends as Array<String>).includes(userId.id)) {
       res.status(400).json({
         success: false,
         message: `Không phải bạn!`,
-      });
-      return;
+      })
+      return
     }
 
     await User.findByIdAndUpdate(
       userId.id,
       { $pull: { friends: String(targetUser._id) } },
       { new: true }
-    );
+    )
 
     await User.findByIdAndUpdate(
       String(targetUser._id),
       { $pull: { friends: userId.id } },
       { new: true }
-    );
+    )
 
     res.status(200).json({
       success: true,
       message: `Hủy kết bạn thành công!`,
-    });
+    })
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    });
+    })
   }
-  next();
-};
+  next()
+}
+
+export const searchUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { includeString } = req.params
+
+    const users = await User.find({
+      username: { $regex: includeString, $options: "i" },
+    }).then((users) => {
+      const data = users.map((user) => {
+        return {
+          username: user.username,
+          profilePic: user.profilePic,
+        }
+      })
+      return data
+    })
+
+    res.status(200).json({
+      success: true,
+      message: "Tìm người dùng thành công!",
+      data: users,
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: `${error}`,
+    })
+  }
+  next()
+}
