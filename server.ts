@@ -3,34 +3,34 @@ import mongoose from "mongoose"
 import app from "./app"
 import http from "http"
 import { Server } from "socket.io"
+import {
+  ClientToServerEvents,
+  InterServerEvents,
+  ServerToClientEvents,
+  SocketData,
+} from "./@type/SocketType"
+import ioHandler from "./socket/eventHandler"
 
 dotenv.config({ path: "./.env" })
 
 const DB: string = process.env.DATABASE!
 const port = process.env.PORT || 8000
+const APP_URL = process.env.APP_URL
 
 const server = http.createServer(app)
-const io = new Server(server, {
+export const io = new Server<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  InterServerEvents,
+  SocketData
+>(server, {
   cors: {
-    // origin: "https://dungvaobangdienthoai.vercel.app",
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
+    origin: APP_URL,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   },
 })
 
-io.on("connection", (socket) => {
-  socket.on("join", (data) => {
-    console.log(data);
-    
-    // socket.join(data)
-  })
-
-  socket.on("send_message", (data) => {
-    socket.to("13").emit("receive_message", data)
-  })
-
-  socket.on("disconnect", () => {})
-})
+io.on("connection", ioHandler)
 
 mongoose
   .connect(DB!)

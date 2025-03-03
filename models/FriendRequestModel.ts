@@ -1,19 +1,30 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types } from "mongoose"
+import User from "./UserModel"
 
-const friendRequestSchema: Schema = new Schema(
+export interface FriendRequestType {
+  fromUserId: Types.ObjectId
+  toUserId: Types.ObjectId
+}
+
+const friendRequestSchema: Schema = new Schema<FriendRequestType>(
   {
     fromUserId: {
-      type: String,
+      type: Schema.Types.ObjectId,
       required: true,
+      ref: User,
     },
     toUserId: {
-      type: String,
+      type: Schema.Types.ObjectId,
       required: true,
+      ref: User,
     },
   },
   { timestamps: true }
-);
+)
 
-const FriendRequest = mongoose.model("FriendRequest", friendRequestSchema);
+const FriendRequest = mongoose.model<FriendRequestType>(
+  "FriendRequest",
+  friendRequestSchema
+)
 
-export default FriendRequest;
+export default FriendRequest

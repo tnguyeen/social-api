@@ -1,10 +1,21 @@
-import express from "express";
-import { verifyUser } from "../middlewares/auth";
-import { createPost, getFeedPosts, uploadPost } from "../controllers/post-controllers/postControllers";
+import express from "express"
+import {
+  commentPost,
+  createPost,
+  getFeedPosts,
+  reactionPost,
+  uploadPost,
+} from "../controllers/post-controllers/postControllers"
+import { verifyUser } from "../middlewares/auth"
 
-const router = express.Router();
+const router = express.Router()
 
-router.route("/").get(verifyUser, getFeedPosts);
-router.route("/createPost").post(uploadPost.single("postImage"),verifyUser, createPost);
+router.route("/").get(verifyUser, getFeedPosts)
+router
+  .route("/createPost")
+  .post(uploadPost.array("postImage", 10), verifyUser, createPost)
 
-export default router;
+router.route("/reactionPost").post(verifyUser, reactionPost)
+router.route("/commentPost").post(verifyUser, commentPost)
+
+export default router

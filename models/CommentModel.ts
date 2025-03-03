@@ -1,4 +1,4 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose"
 
 const commentSchema: Schema = new Schema(
   {
@@ -18,9 +18,13 @@ const commentSchema: Schema = new Schema(
       type: String,
       required: true,
     },
+    userProfilePic: {
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true }
-);
-const Comment = mongoose.model("Comment", commentSchema);
+)
+const Comment = mongoose.model("Comment", commentSchema)
 
-export default Comment;
+export default Comment

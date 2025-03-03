@@ -245,6 +245,7 @@ export const login = async (
       data: {
         token,
         username,
+        profilePic: user.profilePic,
       },
     })
   } catch (error) {

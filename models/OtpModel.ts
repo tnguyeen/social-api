@@ -1,6 +1,12 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose"
 
-const otpSchema: Schema = new Schema(
+export interface OtpType {
+  email: string
+  code: string
+  createdAt: Date
+}
+
+const otpSchema: Schema = new Schema<OtpType>(
   {
     email: {
       type: String,
@@ -16,9 +22,9 @@ const otpSchema: Schema = new Schema(
     },
   },
   { timestamps: true }
-);
+)
 
-otpSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 5 });
-const OtpModel = mongoose.model("Otp", otpSchema);
+otpSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 5 })
+const OtpModel = mongoose.model<OtpType>("Otp", otpSchema)
 
-export default OtpModel;
+export default OtpModel

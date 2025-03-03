@@ -1,10 +1,21 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types } from "mongoose"
+import User from "./UserModel"
 
-const postSchema: Schema = new Schema(
+export interface PostType {
+  userId: Types.ObjectId
+  username: string
+  profilePic: string
+  caption: string
+  image: string[]
+  likes: string[]
+}
+
+const postSchema: Schema = new Schema<PostType>(
   {
     userId: {
-      type: String,
+      type: Schema.Types.ObjectId,
       required: true,
+      ref: User,
     },
     username: {
       type: String,
@@ -18,17 +29,16 @@ const postSchema: Schema = new Schema(
       type: String,
       required: true,
     },
-    image: {
-      type: String,
-      default: "",
-    },
-    likes: {
-      type: Array<String>,
-      default: [],
-    },
+    image: [
+      {
+        type: String,
+        required: true,
+      },
+    ],
+    likes: [{ type: String, default: [] }],
   },
   { timestamps: true }
-);
-const Post = mongoose.model("Post", postSchema);
+)
+const Post = mongoose.model<PostType>("Post", postSchema)
 
-export default Post;
+export default Post

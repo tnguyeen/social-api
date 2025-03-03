@@ -5,7 +5,7 @@ import cors from "cors"
 import authRoutes from "./routes/authRoute"
 import userRoutes from "./routes/userRoute"
 import postRoutes from "./routes/postRoute"
-// import messRoutes from "./routes/messRoute"
+import chatRoutes from "./routes/chatRoute"
 
 const app: Express = express()
 app.set("view engine", "ejs")
@@ -27,6 +27,6 @@ app.get("/", (req: Request, res: Response) => {
 app.use("/auth", authRoutes)
 app.use("/user", userRoutes)
 app.use("/post", postRoutes)
-// app.use("/chat", messRoutes)
+app.use("/chat", chatRoutes)
 
 export default app
