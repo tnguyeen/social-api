@@ -98,6 +98,7 @@ export const getConversations = async (
           receiverUsername,
           receiverProfilePic,
           lastMessageTime: conversation.lastMessageTime,
+          lastMessage,
         }
       })
     )

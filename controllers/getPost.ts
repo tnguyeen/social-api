@@ -4,7 +4,7 @@ import Post from "../models/PostModel"
 export const getUserPosts = async (userId: string) => {
   const result: any[] = []
   try {
-    const posts = await Post.find({ userId: userId })
+    const posts = await Post.find({ userId: userId }).sort({ createdAt: -1 })
 
     await Promise.all(
       (posts as Array<any>).map(async (post) => {

@@ -5,10 +5,13 @@ import {
   getFeedPosts,
   reactionPost,
   uploadPost,
+  getPostById,
 } from "../controllers/post-controllers/postControllers"
 import { verifyUser } from "../middlewares/auth"
 
 const router = express.Router()
+
+router.route("/:postId").get(verifyUser, getPostById)
 
 router.route("/").get(verifyUser, getFeedPosts)
 router

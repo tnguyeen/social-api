@@ -3,9 +3,11 @@ import { NextFunction, Request, Response } from "express"
 import multer from "multer"
 import Post from "../../models/PostModel"
 import User from "../../models/UserModel"
+import Notification from "../../models/NotificationModel"
 import Comment from "../../models/CommentModel"
 import { getUserPosts } from "../getPost"
 import { Types } from "mongoose"
+import { io } from "../../server"
 
 export const createPost = async (
   req: Request,
@@ -134,6 +136,65 @@ export const getFeedPosts = async (
   next()
 }
 
+export const getPostById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId } = req.body
+    const { postId } = req.params
+
+    const user = await User.findById(userId.id)
+    if (!user) {
+      res.status(400).json({
+        success: false,
+        message: `Không có user này!`,
+      })
+      return
+    }
+
+    const post = await Post.findById(postId)
+
+    if (!post) {
+      res.status(400).json({
+        success: false,
+        message: `Không có post này!`,
+      })
+      return
+    }
+
+    const userPosted = await User.findById(post.userId)
+
+    const comments = await Comment.find({
+      postId: post._id,
+    }).sort({ createdAt: -1 })
+    const postData = (post as any)._doc
+
+    if (
+      userPosted?.friends.includes(user._id) ||
+      String(userPosted?._id) == String(user._id)
+    ) {
+      res.status(200).json({
+        success: true,
+        message: "Lấy dữ liệu thành công!",
+        data: { ...postData, comments },
+      })
+    } else {
+      res.status(400).json({
+        success: false,
+        message: "Not friend!",
+      })
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: `${error}`,
+    })
+  }
+  next()
+}
+
 export const reactionPost = async (
   req: Request,
   res: Response,
@@ -162,11 +223,31 @@ export const reactionPost = async (
 
     const likedUserIds = post.likes
 
+    const userPosted = await User.findById(post.userId)
+
     if (likedUserIds.includes(user.username)) {
       const index = likedUserIds.indexOf(user.username)
       likedUserIds.splice(index, 1)
     } else {
       likedUserIds.push(user.username)
+
+      io.to(String(userPosted?.username)).emit("notification", {
+        type: "like-post",
+        username: user.username,
+        picture: user.profilePic,
+        path: String(post._id),
+      })
+
+      const noti = new Notification({
+        type: "like-post",
+        username: user.username,
+        picture: user.profilePic,
+        path: String(post._id),
+        isRead: false,
+        userId: userPosted!._id,
+      })
+
+      await noti.save()
     }
 
     post.likes = likedUserIds
@@ -219,6 +300,8 @@ export const commentPost = async (
       return
     }
 
+    const userPosted = await User.findById(post.userId)
+
     const newComment = new Comment({
       postId,
       userId: user._id,
@@ -228,6 +311,24 @@ export const commentPost = async (
     })
 
     const savedComment = await newComment.save()
+
+    io.to(String(userPosted?.username)).emit("notification", {
+      type: "comment-post",
+      username: user.username,
+      picture: user.profilePic,
+      path: String(post._id),
+    })
+
+    const noti = new Notification({
+      type: "comment-post",
+      username: user.username,
+      picture: user.profilePic,
+      path: String(post._id),
+      isRead: false,
+      userId: userPosted!._id,
+    })
+
+    await noti.save()
 
     res.status(200).json({
       success: true,

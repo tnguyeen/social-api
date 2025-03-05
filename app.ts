@@ -6,6 +6,7 @@ import authRoutes from "./routes/authRoute"
 import userRoutes from "./routes/userRoute"
 import postRoutes from "./routes/postRoute"
 import chatRoutes from "./routes/chatRoute"
+import notiRoutes from "./routes/notiRoute"
 
 const app: Express = express()
 app.set("view engine", "ejs")
@@ -28,5 +29,6 @@ app.use("/auth", authRoutes)
 app.use("/user", userRoutes)
 app.use("/post", postRoutes)
 app.use("/chat", chatRoutes)
+app.use("/notification", notiRoutes)
 
 export default app

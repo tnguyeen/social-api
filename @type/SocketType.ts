@@ -1,3 +1,5 @@
+import { Types } from "mongoose"
+
 type onMessageType = (data: {
   content: string
   room: string
@@ -5,11 +7,22 @@ type onMessageType = (data: {
 }) => void
 type onJoinType = (data: { username: string; room?: string }) => void
 
+type onNotification = (data: {
+  type:
+    | "message"
+    | "friend-request"
+    | "like-post"
+    | "comment-post"
+    | "accept-friend"
+  username: string
+  picture: string
+  toUser?: Types.ObjectId
+  path: string
+}) => void
+
 interface ServerToClientEvents {
-  noArg: () => void
-  basicEmit: (a: number, b: string, c: Buffer) => void
-  withAck: (d: string, callback: (e: number) => void) => void
   message: onMessageType
+  notification: onNotification
 }
 
 interface ClientToServerEvents {

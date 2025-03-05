@@ -1,8 +1,10 @@
 import { NextFunction, Request, Response } from "express"
-import FriendRequest from "../../models/FriendRequestModel"
-import User from "../../models/UserModel"
-import Post from "../../models/PostModel"
 import { nonAccentConverter } from "../../helpers"
+import FriendRequest from "../../models/FriendRequestModel"
+import Post from "../../models/PostModel"
+import User from "../../models/UserModel"
+import { io } from "../../server"
+import Notification from "../../models/NotificationModel"
 
 export const getUser = async (
   req: Request,
@@ -98,6 +100,15 @@ export const sendFriendRequestUsername = async (
     const { userId } = req.body
     const { targetUsername } = req.params
 
+    const user = await User.findById(userId.id)
+    if (!user) {
+      res.status(400).json({
+        success: false,
+        message: "Vui lòng cung correct token!",
+      })
+      return
+    }
+
     if (!targetUsername) {
       res.status(400).json({
         success: false,
@@ -133,7 +144,7 @@ export const sendFriendRequestUsername = async (
 
     const isFriendRequest = await FriendRequest.find({
       fromUserId: userId.id,
-      toUserId: String(targetUser._id),
+      toUserId: targetUser._id,
     })
     if (isFriendRequest.length > 0) {
       res.status(400).json({
@@ -149,6 +160,25 @@ export const sendFriendRequestUsername = async (
     })
 
     await friendRequest.save()
+
+    io.to(targetUsername).emit("notification", {
+      type: "friend-request",
+      username: user.username,
+      picture: user.profilePic,
+      toUser: targetUser._id,
+      path: user.username,
+    })
+
+    const noti = new Notification({
+      type: "friend-request",
+      username: user.username,
+      picture: user.profilePic,
+      path: user.username,
+      isRead: false,
+      userId: targetUser._id,
+    })
+
+    await noti.save()
 
     res.status(201).json({
       success: true,
@@ -269,16 +299,47 @@ export const handleFriendRequest = async (
     }
 
     if (isAccepted) {
-      await User.findByIdAndUpdate(
-        friendRequest.fromUserId,
-        { $push: { friends: userId.id } },
-        { new: true }
-      )
-      await User.findByIdAndUpdate(
-        friendRequest.toUserId,
-        { $push: { friends: friendRequest.fromUserId } },
-        { new: true }
-      )
+      const user = await User.findById(userId.id)
+      if (!user) {
+        res.status(400).json({
+          success: false,
+          message: "Vui lòng cung correct token!",
+        })
+        return
+      }
+
+      const fromUser = await User.findById(friendRequest.fromUserId)
+      if (!fromUser) {
+        res.status(400).json({
+          success: false,
+          message: "Vui lòng cung correct token!",
+        })
+        return
+      }
+
+      user.friends.push(fromUser._id)
+      fromUser.friends.push(user._id)
+
+      await user.save()
+      await fromUser.save()
+
+      io.to(fromUser.username).emit("notification", {
+        type: "accept-friend",
+        username: user.username,
+        picture: user.profilePic,
+        path: user.username,
+      })
+
+      const noti = new Notification({
+        type: "accept-friend",
+        username: user.username,
+        picture: user.profilePic,
+        path: user.username,
+        isRead: false,
+        userId: fromUser._id,
+      })
+
+      await noti.save()
     }
 
     await friendRequest.deleteOne()
