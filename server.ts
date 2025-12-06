@@ -1,23 +1,23 @@
-import dotenv from "dotenv"
-import mongoose from "mongoose"
-import app from "./app"
-import http from "http"
-import { Server } from "socket.io"
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+import app from "./app";
+import http from "http";
+import { Server } from "socket.io";
 import {
   ClientToServerEvents,
   InterServerEvents,
   ServerToClientEvents,
   SocketData,
-} from "./@type/SocketType"
-import ioHandler from "./socket/eventHandler"
+} from "./@type/SocketType";
+import ioHandler from "./socket/eventHandler";
 
-dotenv.config({ path: "./.env" })
+dotenv.config({ path: "./.env" });
 
-const DB: string = process.env.DATABASE!
-const port = process.env.PORT || 8000
-const APP_URL = process.env.APP_URL
+const DB: string = process.env.DATABASE!;
+const port = process.env.PORT || 8000;
+const APP_URL = process.env.APP_URL;
 
-const server = http.createServer(app)
+const server = http.createServer(app);
 export const io = new Server<
   ClientToServerEvents,
   ServerToClientEvents,
@@ -28,17 +28,17 @@ export const io = new Server<
     origin: APP_URL,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   },
-})
+});
 
-io.on("connection", ioHandler)
+io.on("connection", ioHandler);
 
 mongoose
   .connect(DB!)
   .then(() => {
     server.listen(port, () => {
-      console.log(`Server port : ${port}`)
-    })
+      console.log(`Server run on : http://localhost:${port}`);
+    });
   })
   .catch((err) => {
-    console.log(err)
-  })
+    console.log(err);
+  });
