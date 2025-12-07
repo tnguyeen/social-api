@@ -25,13 +25,13 @@ export const createConversation = async (
     }
 
     const isConversation = await Conversation.findOne({
-      listUserId: { $in: [user._id, receiver._id] },
+      listUserId: { $all: [user._id, receiver._id] },
     });
 
     if (isConversation) {
       res.status(400).json({
         success: false,
-        message: `Existted Conversation!`,
+        message: `Existed Conversation!`,
         data: isConversation,
       });
       return;
