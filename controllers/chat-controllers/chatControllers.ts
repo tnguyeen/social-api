@@ -193,11 +193,27 @@ export const sendMessage = async (
       senderUsername: user.username,
     };
 
+    const recipientId = conversation.listUserId.find(
+      (id) => String(id) !== String(user._id)
+    );
+
+    const recipientUser = await User.findById(recipientId);
+
     io.to(conversationId).emit("message", {
       content: JSON.stringify(socketData),
       room: conversationId,
       senderUsername: user.username,
     });
+
+    if (recipientUser) {
+      io.to(recipientUser.username).emit("notification", {
+        type: "new-message",
+        username: user.username,
+        picture: user.profilePic,
+        toUser: recipientUser._id,
+        path: JSON.stringify(socketData),
+      });
+    }
 
     res.status(200).json({
       success: true,
