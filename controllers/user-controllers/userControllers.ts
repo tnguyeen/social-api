@@ -54,21 +54,7 @@ export const getUser = async (
 
     const isFriend = friends.includes(userId.id);
 
-    if (!isFriend) {
-      res.status(200).json({
-        success: true,
-        message: "Lấy thông tin người dùng thành công!",
-        data: {
-          userId: targetUser._id,
-          username,
-          email,
-          friends_count: friends.length,
-          profilePic,
-          toUser: "not-friend",
-        },
-      });
-      return;
-    } else {
+    if (isFriend) {
       const posts = await Post.find({ userId: targetUser._id });
       res.status(200).json({
         success: true,
@@ -83,7 +69,42 @@ export const getUser = async (
           toUser: "is-friend",
         },
       });
+      return;
     }
+
+    const existingRequest = await FriendRequest.findOne({
+      $or: [
+        { fromUserId: userId.id, toUserId: targetUser._id },
+        { fromUserId: targetUser._id, toUserId: userId.id },
+      ],
+    });
+
+    let relationStatus = "not-friend";
+    let requestId = null;
+
+    if (existingRequest) {
+      if (String(existingRequest.fromUserId) === userId.id) {
+        relationStatus = "already-sent";
+        requestId = existingRequest._id;
+      } else {
+        relationStatus = "received";
+        requestId = existingRequest._id;
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Lấy thông tin người dùng thành công!",
+      data: {
+        userId: targetUser._id,
+        username,
+        email,
+        friends_count: friends.length,
+        profilePic,
+        toUser: relationStatus, // 'not-friend' | 'already-sent' | 'received'
+        friendRequestId: requestId,
+      },
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
