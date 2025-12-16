@@ -17,6 +17,8 @@ const DB: string = process.env.DATABASE!
 const port = process.env.PORT || 8000
 const APP_URL = process.env.APP_URL
 
+console.log(APP_URL)
+
 const server = http.createServer(app)
 export const io = new Server<
   ClientToServerEvents,

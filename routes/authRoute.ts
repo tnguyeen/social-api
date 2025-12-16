@@ -15,6 +15,7 @@ const router = express.Router()
 
 router.route("/checkUsername/:username").get(checkUsername)
 router.route("/register").post(uploadProfile.single("profilepic"), register)
+
 router.post("/login", login)
 
 router.route("/verify/:uid").get(verifyAccount)

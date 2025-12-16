@@ -459,8 +459,16 @@ export const changeForgottenPassword = async (
 
     const otp = await OtpModel.find({ email: email }).sort({ createdAt: -1 })
 
+    if (!otp) {
+      res.status(400).json({
+        success: false,
+        message: "Mã OTP sai!",
+      })
+      return
+    }
+
     if (otp[0].code !== otpCode) {
-      res.status(200).json({
+      res.status(400).json({
         success: false,
         message: "Mã OTP sai!",
       })

@@ -27,8 +27,8 @@ app.get("/", (req: Request, res: Response) => {
 /* CAC THE LOAI ROUTE */
 app.use("/auth", authRoutes)
 app.use("/user", userRoutes)
-app.use("/post", postRoutes)
 app.use("/chat", chatRoutes)
 app.use("/notification", notiRoutes)
 
+app.use("/post", postRoutes)
 export default app

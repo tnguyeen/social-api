@@ -429,6 +429,7 @@ export const searchUser = async (
 
     const users = await User.find({
       username: { $regex: searchValue, $options: "i" },
+      verified: true,
     }).then((users) => {
       const data = users.filter((user) => user._id != userId.id)
       return data
