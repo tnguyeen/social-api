@@ -11,6 +11,7 @@ type onNotification = (data: {
   type:
     | "message"
     | "friend-request"
+    | "new-message" 
     | "like-post"
     | "comment-post"
     | "accept-friend"

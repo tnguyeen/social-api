@@ -1,139 +1,124 @@
-import bcrypt from "bcrypt"
-import { v2 as cloudinary } from "cloudinary"
-import { NextFunction, Request, Response } from "express"
-import jwt from "jsonwebtoken"
-import multer from "multer"
-import User from "../../models/UserModel"
-import { sendMailVerify, sendMailOtpForgotPassword } from "./authMailer"
-import {
-  emailSchema,
-  generateNewPassword,
-  generateOTP,
-  passwordSchema,
-  usernameSchema,
-  zodCheck,
-} from "./helpers"
-import OtpModel from "../../models/OtpModel"
-import { ObjectId } from "mongodb"
+import bcrypt from "bcrypt";
+import { v2 as cloudinary } from "cloudinary";
+import { NextFunction, Request, Response } from "express";
+import jwt from "jsonwebtoken";
+import multer from "multer";
+import User from "../../models/UserModel";
+import { sendMailVerify, sendMailOtpForgotPassword } from "./authMailer";
+import { emailSchema, generateNewPassword, generateOTP, passwordSchema, usernameSchema, zodCheck } from "./helpers";
+import OtpModel from "../../models/OtpModel";
+import { ObjectId } from "mongodb";
 
-const salt = bcrypt.genSaltSync(4)
+const salt = bcrypt.genSaltSync(4);
 
-export const checkUsername = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const checkUsername = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { username } = req.params
-    const user = await User.where({ username }).findOne({})
+    const { username } = req.params;
+    const user = await User.where({ username }).findOne({});
 
     if (user) {
       res.status(400).json({
         success: false,
         message: `Tên người dùng đã tồn tại. Vui lòng chọn tên khác!`,
-      })
-      return
+      });
+      return;
     }
 
     res.status(200).json({
       success: true,
       message: "Bạn có thể sử dụng tên này!",
-    })
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
-export const register = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { username, password, confirmPassword, email } = req.body
+    const { username, password, confirmPassword, email } = req.body;
 
     if (!username) {
       res.status(400).json({
         success: false,
         message: "Vui lòng nhập tên đăng nhập!",
-      })
-      return
+      });
+      return;
     }
 
     if (!password) {
       res.status(400).json({
         success: false,
         message: "Vui lòng nhập mật khẩu!",
-      })
-      return
+      });
+      return;
     }
 
     if (!email) {
       res.status(400).json({
         success: false,
         message: "Vui lòng nhập địa chỉ email!",
-      })
-      return
+      });
+      return;
     }
 
-    const usernameCheck = zodCheck(username, usernameSchema)
+    const usernameCheck = zodCheck(username, usernameSchema);
     if (!usernameCheck.success) {
       res.status(400).json({
         success: false,
         message: usernameCheck.message,
-      })
-      return
+      });
+      return;
     }
 
-    const passwordCheck = zodCheck(password, passwordSchema)
+    const passwordCheck = zodCheck(password, passwordSchema);
     if (!passwordCheck.success) {
       res.status(400).json({
         success: false,
         message: passwordCheck.message,
-      })
-      return
+      });
+      return;
     }
 
-    const emailCheck = zodCheck(email, emailSchema)
+    const emailCheck = zodCheck(email, emailSchema);
     if (!emailCheck.success) {
       res.status(400).json({
         success: false,
         message: emailCheck.message,
-      })
-      return
+      });
+      return;
     }
 
     if (password != confirmPassword) {
       res.status(400).json({
         success: false,
         message: "Xác nhận sai mật khẩu!",
-      })
-      return
+      });
+      return;
     }
 
-    const isUsername = await User.findOne({ username: username })
-    const isEmail = await User.findOne({ email: email })
+    const isUsername = await User.findOne({ username: username });
+    const isEmail = await User.findOne({ email: email });
 
     if (isUsername) {
       res.status(400).json({
         success: false,
         message: "Tên đăng nhập đã tồn tại!",
-      })
-      return
+      });
+      return;
     }
     if (isEmail) {
       res.status(400).json({
         success: false,
         message: "Địa chỉ email đã tồn tại!",
-      })
-      return
+      });
+      return;
     }
 
-    let profilePictureUrl = ""
+    let profilePictureUrl = "";
     if (req.file) {
       const profilePicture = await cloudinary.uploader.upload(req.file.path, {
         cloud_name: process.env.CLOUDINARY_NAME,
@@ -148,14 +133,13 @@ export const register = async (
           crop: "fill",
           gravity: "auto",
         },
-      })
-      profilePictureUrl = profilePicture.url
+      });
+      profilePictureUrl = profilePicture.url;
     } else {
-      profilePictureUrl =
-        "https://res.cloudinary.com/dfn0pqcfw/image/upload/v1730864474/default_h0bn9c.webp"
+      profilePictureUrl = "https://res.cloudinary.com/dfn0pqcfw/image/upload/v1730864474/default_h0bn9c.webp";
     }
 
-    const hashedPassword = bcrypt.hashSync(password, salt)
+    const hashedPassword = bcrypt.hashSync(password, salt);
 
     const newUser = new User({
       username: username,
@@ -166,11 +150,11 @@ export const register = async (
       following: [],
       profilePic: profilePictureUrl,
       posts: [],
-    })
+    });
 
-    const savedUser = await newUser.save()
+    const savedUser = await newUser.save();
 
-    sendMailVerify(email, String(savedUser._id))
+    sendMailVerify(email, String(savedUser._id));
 
     res.status(201).json({
       success: true,
@@ -178,67 +162,63 @@ export const register = async (
       data: {
         user: savedUser,
       },
-    })
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
-export const login = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { username, password } = req.body
+    const { username, password } = req.body;
 
     if (!username) {
       res.status(400).json({
         success: false,
         message: "Vui lòng nhập tên đăng nhập!",
-      })
-      return
+      });
+      return;
     }
 
     if (!password) {
       res.status(400).json({
         success: false,
         message: "Vui lòng nhập mật khẩu!",
-      })
-      return
+      });
+      return;
     }
 
-    const user = await User.findOne({ username: username })
+    const user = await User.findOne({ username: username });
     if (!user) {
       res.status(400).json({
         success: false,
         message: `Không có user này!`,
-      })
-      return
+      });
+      return;
     }
-    const checkPassword = bcrypt.compareSync(password, String(user.password))
+    const checkPassword = bcrypt.compareSync(password, String(user.password));
 
     if (!checkPassword) {
       res.status(400).json({
         success: false,
         message: "Nhập sai mật khẩu!",
-      })
-      return
+      });
+      return;
     }
 
     if (!user.verified) {
       res.status(400).json({
         success: false,
         message: "Người dùng chưa được xác thực!",
-      })
-      return
+      });
+      return;
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!)
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!);
     res.status(200).json({
       success: true,
       message: "Đăng nhập thành công!",
@@ -247,217 +227,198 @@ export const login = async (
         username,
         profilePic: user.profilePic,
       },
-    })
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
-export const verifyAccount = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const verifyAccount = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { uid } = req.params
+    const { uid } = req.params;
 
-    const id = new ObjectId(uid)
+    const id = new ObjectId(uid);
 
-    const user = await User.findOneAndUpdate({ _id: id }, { verified: true })
+    const user = await User.findOneAndUpdate({ _id: id }, { verified: true });
 
     if (!user) {
       res.status(400).json({
         success: false,
         message: `Không có user này!`,
-      })
-      return
+      });
+      return;
     }
 
     res.status(200).json({
       success: true,
       message: "Xác thực người dùng thành công!",
-    })
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
-export const changePassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { userId, currentPassword, newPassword, confirmPassword } = req.body
+    const { userId, currentPassword, newPassword, confirmPassword } = req.body;
 
     if (!currentPassword) {
       res.status(400).json({
         success: false,
         message: "Vui lòng nhập mật khẩu hiện tại!",
-      })
-      return
+      });
+      return;
     }
     if (!newPassword) {
       res.status(400).json({
         success: false,
         message: "Vui lòng nhập mật khẩu mới!",
-      })
-      return
+      });
+      return;
     }
     if (!confirmPassword) {
       res.status(400).json({
         success: false,
         message: "Vui lòng xác nhận mật khẩu!",
-      })
-      return
+      });
+      return;
     }
 
-    const passwordCheck = zodCheck(newPassword, passwordSchema)
+    const passwordCheck = zodCheck(newPassword, passwordSchema);
     if (!passwordCheck.success) {
       res.status(400).json({
         success: false,
         message: passwordCheck.message,
-      })
-      return
+      });
+      return;
     }
 
     if (newPassword != confirmPassword) {
       res.status(400).json({
         success: false,
         message: "Xác nhận sai mật khẩu!",
-      })
-      return
+      });
+      return;
     }
 
-    const user = await User.findById(userId.id)
+    const user = await User.findById(userId.id);
     if (!user) {
       res.status(400).json({
         success: false,
         message: `Không có user này!`,
-      })
-      return
+      });
+      return;
     }
 
-    const checkPassword = bcrypt.compareSync(
-      currentPassword,
-      String(user.password)
-    )
+    const checkPassword = bcrypt.compareSync(currentPassword, String(user.password));
 
     if (!checkPassword) {
       res.status(400).json({
         success: false,
         message: "Mật khẩu hiện tại không đúng!",
-      })
-      return
+      });
+      return;
     }
 
-    const hashedPassword = bcrypt.hashSync(newPassword, salt)
-    user.password = hashedPassword
+    const hashedPassword = bcrypt.hashSync(newPassword, salt);
+    user.password = hashedPassword;
 
-    await user.save()
+    await user.save();
 
     res.status(200).json({
       success: true,
       message: "Thay đổi mật khẩu thành công!",
-    })
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
-export const otpForgotPassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const otpForgotPassword = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email } = req.body
+    const { email } = req.body;
     if (!email) {
       res.status(400).json({
         success: false,
         message: "Vui lòng nhập địa chỉ email!",
-      })
-      return
+      });
+      return;
     }
 
-    const isEmail = await User.findOne({ email: email })
+    const isEmail = await User.findOne({ email: email });
     if (!isEmail) {
       res.status(400).json({
         success: false,
         message: "Địa chỉ email không tồn tại!",
-      })
-      return
+      });
+      return;
     }
 
-    const otpCode = generateOTP()
+    const otpCode = generateOTP();
 
     const opt = new OtpModel({
       email: email,
       code: otpCode,
-    })
+    });
 
-    const savedOtp = await opt.save()
+    const savedOtp = await opt.save();
 
-    await sendMailOtpForgotPassword(email, String(savedOtp.code))
+    await sendMailOtpForgotPassword(email, String(savedOtp.code));
 
     res.status(200).json({
       success: true,
       message: "Đã gửi!",
       email,
-    })
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
-export const changeForgottenPassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const changeForgottenPassword = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, otpCode } = req.body
+    const { email, otpCode } = req.body;
     if (!email) {
       res.status(400).json({
         success: false,
         message: "Vui lòng nhập địa chỉ email!",
-      })
-      return
+      });
+      return;
     }
     if (!otpCode) {
       res.status(400).json({
         success: false,
         message: "Vui lòng nhập mã otp!",
-      })
-      return
+      });
+      return;
     }
 
-    const user = await User.findOne({ email: email })
+    const user = await User.findOne({ email: email });
     if (!user) {
       res.status(400).json({
         success: false,
         message: "Địa chỉ email không tồn tại!",
-      })
-      return
+      });
+      return;
     }
 
-    const otp = await OtpModel.find({ email: email }).sort({ createdAt: -1 })
+    const otp = await OtpModel.find({ email: email }).sort({ createdAt: -1 });
 
     if (!otp) {
       res.status(400).json({
@@ -471,35 +432,35 @@ export const changeForgottenPassword = async (
       res.status(400).json({
         success: false,
         message: "Mã OTP sai!",
-      })
-      return
+      });
+      return;
     }
 
-    const newPassword = generateNewPassword()
+    const newPassword = generateNewPassword();
 
-    const hashedPassword = bcrypt.hashSync(newPassword, salt)
-    user.password = hashedPassword
+    const hashedPassword = bcrypt.hashSync(newPassword, salt);
+    user.password = hashedPassword;
 
-    await user.save()
+    await user.save();
 
     res.status(200).json({
       success: true,
       message: "Xác thực mã đúng!",
-      newPassword,
-    })
+      data: { newPassword },
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
 const storage = multer.diskStorage({
   filename: function (req, file, cb) {
-    cb(null, req.body.username + "-" + new Date().getTime() + ".png")
+    cb(null, req.body.username + "-" + new Date().getTime() + ".png");
   },
-})
+});
 
-export const uploadProfile = multer({ storage: storage })
+export const uploadProfile = multer({ storage: storage });

@@ -1,7 +1,10 @@
-import { NextFunction, Request, Response } from "express"
-import Conversation from "../../models/ConversationModel"
-import Message from "../../models/MessageModel"
-import User from "../../models/UserModel"
+import { NextFunction, Request, Response } from "express";
+import Conversation from "../../models/ConversationModel";
+import Message from "../../models/MessageModel";
+import User from "../../models/UserModel";
+import { io } from "../../server";
+import { date } from "zod";
+import { json } from "body-parser";
 
 export const createConversation = async (
   req: Request,
@@ -9,29 +12,29 @@ export const createConversation = async (
   next: NextFunction
 ) => {
   try {
-    const { userId, receiverId } = req.body
+    const { userId, receiverId } = req.body;
 
-    const user = await User.findById(userId.id)
-    const receiver = await User.findById(receiverId)
+    const user = await User.findById(userId.id);
+    const receiver = await User.findById(receiverId);
     if (!user || !receiver) {
       res.status(400).json({
         success: false,
         message: `Không có user này!`,
-      })
-      return
+      });
+      return;
     }
 
     const isConversation = await Conversation.findOne({
-      listUserId: { $in: [user._id, receiver._id] },
-    })
+      listUserId: { $all: [user._id, receiver._id] },
+    });
 
     if (isConversation) {
       res.status(400).json({
         success: false,
-        message: `Existted Conversation!`,
+        message: `Existed Conversation!`,
         data: isConversation,
-      })
-      return
+      });
+      return;
     }
 
     const newConversation = new Conversation({
@@ -39,23 +42,23 @@ export const createConversation = async (
       listUsername: [user.username, receiver.username],
       listUserProfilePic: [user.profilePic, receiver.profilePic],
       lastMessageTime: new Date(),
-    })
+    });
 
-    const savedConversation = await newConversation.save()
+    const savedConversation = await newConversation.save();
 
     res.status(201).json({
       success: true,
       message: "Thành công!",
       data: savedConversation,
-    })
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
 export const getConversations = async (
   req: Request,
@@ -63,59 +66,63 @@ export const getConversations = async (
   next: NextFunction
 ) => {
   try {
-    const { userId } = req.body
+    const { userId } = req.body;
 
-    const user = await User.findById(userId.id)
+    const user = await User.findById(userId.id);
     if (!user) {
       res.status(400).json({
         success: false,
         message: `Không có user này!`,
-      })
-      return
+      });
+      return;
     }
 
     const conversations = await Conversation.find({
       listUserId: { $in: [user._id] },
-    })
+    });
 
     const returnConversations = await Promise.all(
       conversations.map(async (conversation) => {
         const receiverUsername = conversation.listUsername.filter(
           (username) => username != user.username
-        )[0]
+        )[0];
         const receiverProfilePic = conversation.listUserProfilePic.filter(
           (profilePic) => profilePic != user.profilePic
-        )[0]
+        )[0];
+        const receiverId = conversation.listUserId.filter(
+          (id) => String(id) != String(user._id)
+        )[0];
 
         const lastMessage = await Message.findOne({
           conversationId: conversation._id,
         })
           .sort({ createdAt: -1 })
-          .exec()
+          .exec();
 
         return {
           _id: conversation._id,
           receiverUsername,
+          receiverId,
           receiverProfilePic,
           lastMessageTime: conversation.lastMessageTime,
           lastMessage,
-        }
+        };
       })
-    )
+    );
 
     res.status(200).json({
       success: true,
       message: "Xác thực người dùng thành công!",
       data: returnConversations,
-    })
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
 export const sendMessage = async (
   req: Request,
@@ -123,49 +130,49 @@ export const sendMessage = async (
   next: NextFunction
 ) => {
   try {
-    const { userId, conversationId, content } = req.body
+    const { userId, conversationId, content } = req.body;
 
     if (!content) {
       res.status(400).json({
         success: false,
         message: `Không có content!`,
-      })
-      return
+      });
+      return;
     }
 
     if (!conversationId) {
       res.status(400).json({
         success: false,
         message: `Không có conversationId!`,
-      })
-      return
+      });
+      return;
     }
 
-    const user = await User.findById(userId.id)
+    const user = await User.findById(userId.id);
     if (!user) {
       res.status(400).json({
         success: false,
         message: `Không có user này!`,
-      })
-      return
+      });
+      return;
     }
 
-    const conversation = await Conversation.findById(conversationId)
+    const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
       res.status(400).json({
         success: false,
         message: `Không có conversation này!`,
-      })
-      return
+      });
+      return;
     }
 
-    const isUserAuthorize = conversation.listUserId.includes(user._id)
+    const isUserAuthorize = conversation.listUserId.includes(user._id);
     if (!isUserAuthorize) {
       res.status(403).json({
         success: false,
         message: `Không có user trong conversation này!`,
-      })
-      return
+      });
+      return;
     }
 
     const newMessage = new Message({
@@ -173,26 +180,54 @@ export const sendMessage = async (
       conversationId: conversation._id,
       content,
       isRead: false,
-    })
+    });
 
-    await newMessage.save()
+    const savedMessage = await newMessage.save();
 
-    conversation.lastMessageTime = new Date()
+    conversation.lastMessageTime = new Date();
 
-    await conversation.save()
+    await conversation.save();
+
+    const socketData = {
+      message: savedMessage,
+      senderUsername: user.username,
+    };
+
+    const recipientId = conversation.listUserId.find(
+      (id) => String(id) !== String(user._id)
+    );
+
+    const recipientUser = await User.findById(recipientId);
+
+    io.to(conversationId).emit("message", {
+      content: JSON.stringify(socketData),
+      room: conversationId,
+      senderUsername: user.username,
+    });
+
+    if (recipientUser) {
+      io.to(recipientUser.username).emit("notification", {
+        type: "new-message",
+        username: user.username,
+        picture: user.profilePic,
+        toUser: recipientUser._id,
+        path: JSON.stringify(socketData),
+      });
+    }
 
     res.status(200).json({
       success: true,
       message: "Xác thực người dùng thành công!",
-    })
+      data: socketData,
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
 export const getConversationById = async (
   req: Request,
@@ -200,52 +235,52 @@ export const getConversationById = async (
   next: NextFunction
 ) => {
   try {
-    const { userId, conversationId } = req.body
+    const { userId, conversationId } = req.body;
 
-    const user = await User.findById(userId.id)
+    const user = await User.findById(userId.id);
     if (!user) {
       res.status(400).json({
         success: false,
         message: `Không có user này!`,
-      })
-      return
+      });
+      return;
     }
 
-    const conversation = await Conversation.findById(conversationId)
+    const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
       res.status(400).json({
         success: false,
         message: `Không có conversation này!`,
-      })
-      return
+      });
+      return;
     }
 
     const username = conversation.listUsername.filter(
       (username) => username != user.username
-    )[0]
+    )[0];
     const profilePic = conversation.listUserProfilePic.filter(
       (profilePic) => profilePic != user.profilePic
-    )[0]
+    )[0];
 
     const conversations = await Conversation.find({
       listUserId: { $in: [user._id] },
-    })
+    });
 
-    const returnConversation = { username, profilePic }
+    const returnConversation = { username, profilePic };
 
     res.status(200).json({
       success: true,
       message: "Xác thực người dùng thành công!",
       data: returnConversation,
-    })
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
 export const getConversationMessages = async (
   req: Request,
@@ -253,42 +288,42 @@ export const getConversationMessages = async (
   next: NextFunction
 ) => {
   try {
-    const { userId, conversationId } = req.body
+    const { userId, conversationId } = req.body;
 
-    const user = await User.findById(userId.id)
+    const user = await User.findById(userId.id);
     if (!user) {
       res.status(400).json({
         success: false,
         message: `Không có user này!`,
-      })
-      return
+      });
+      return;
     }
 
-    const conversation = await Conversation.findById(conversationId)
+    const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
       res.status(400).json({
         success: false,
         message: `Không có conversation này!`,
-      })
-      return
+      });
+      return;
     }
 
-    const isUserAuthorize = conversation.listUserId.includes(user._id)
+    const isUserAuthorize = conversation.listUserId.includes(user._id);
     if (!isUserAuthorize) {
       res.status(403).json({
         success: false,
         message: `Không có user trong conversation này!`,
-      })
-      return
+      });
+      return;
     }
 
     const otherUsername = conversation.listUsername.filter(
       (username) => username !== user.username
-    )[0]
+    )[0];
 
     const messages = await Message.find({
       conversationId: conversation._id,
-    })
+    });
 
     const returnMessages = messages.map((message) => {
       const returnMessage = {
@@ -297,21 +332,21 @@ export const getConversationMessages = async (
           String(message.senderId) === String(user._id)
             ? user.username
             : otherUsername,
-      }
+      };
 
-      return returnMessage
-    })
+      return returnMessage;
+    });
 
     res.status(200).json({
       success: true,
       message: "get messages thành công!",
       data: returnMessages,
-    })
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: `${error}`,
-    })
+    });
   }
-  next()
-}
+  next();
+};

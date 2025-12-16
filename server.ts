@@ -17,8 +17,6 @@ const DB: string = process.env.DATABASE!
 const port = process.env.PORT || 8000
 const APP_URL = process.env.APP_URL
 
-console.log(APP_URL)
-
 const server = http.createServer(app)
 export const io = new Server<
   ClientToServerEvents,
@@ -38,7 +36,7 @@ mongoose
   .connect(DB!)
   .then(() => {
     server.listen(port, () => {
-      console.log(`Server port : ${port}`)
+      console.log(`Server run on : http://localhost:${port}`)
     })
   })
   .catch((err) => {
